@@ -45,15 +45,15 @@ func Download(url url.URL) {
 
 	var wg sync.WaitGroup
 
-	for _, chunk := range chunckArray {
+	for idx, chunk := range chunckArray {
 		wg.Add(1)
-		go func(start int, end int) {
+		go func(idx int, start int, end int) {
 			defer wg.Done()
-			err := downLoadRequest.GetPeice(start, end)
+			err := downLoadRequest.GetPeice(idx, start, end)
 			if err != nil {
 				panic(err)
 			}
-		}(chunk[0], chunk[1])
+		}(idx, chunk[0], chunk[1])
 	}
 	wg.Wait()
 	fmt.Println(chunckArray)
