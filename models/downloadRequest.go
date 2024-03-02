@@ -29,7 +29,7 @@ func (dr *DownloadRequest) SplitIntoChuncks() [][2]int {
 	return chunkRanges
 }
 
-func (downloadRequest *DownloadRequest) GetPeice(start_byte int, end_byte int) error {
+func (downloadRequest *DownloadRequest) GetPeice(idx, start_byte int, end_byte int) error {
 	header := map[string]string{
 		"Range": "bytes=" + fmt.Sprintf("%d", start_byte) + "-" + fmt.Sprintf("%d", end_byte),
 	}
@@ -42,7 +42,7 @@ func (downloadRequest *DownloadRequest) GetPeice(start_byte int, end_byte int) e
 		return err
 	}
 
-	err = downloadRequest.WriteToAFile(start_byte, resp.Body)
+	err = downloadRequest.WriteToAFile(idx, resp.Body)
 	if err != nil {
 		return err
 	}
@@ -50,8 +50,8 @@ func (downloadRequest *DownloadRequest) GetPeice(start_byte int, end_byte int) e
 	return nil
 }
 
-func (downloadRequest *DownloadRequest) WriteToAFile(start_byte int, respBody io.ReadCloser) error {
-	fileName := fmt.Sprintf("%s_%d", downloadRequest.FileName, start_byte)
+func (downloadRequest *DownloadRequest) WriteToAFile(idx int, respBody io.ReadCloser) error {
+	fileName := fmt.Sprintf("%s_%d", downloadRequest.FileName, idx)
 	file, err := os.Create(fileName)
 	if err != nil {
 		panic(err)
@@ -60,7 +60,31 @@ func (downloadRequest *DownloadRequest) WriteToAFile(start_byte int, respBody io
 	if err != nil {
 		panic(err)
 	}
-	println(fmt.Sprintf("Wrote chunk %v to file", start_byte))
 
+	defer file.Close()
+	downloadRequest.MergeFiles()
+	println(fmt.Sprintf("Wrote chunk %v to file", idx))
+
+	return nil
+}
+
+func (downloadRequest *DownloadRequest) MergeFiles() error {
+	downloadedFile, err := os.Create(downloadRequest.FileName)
+	if err != nil {
+		return err
+	}
+	defer downloadedFile.Close()
+	for idx := 0; idx < downloadRequest.Chuncks; idx++ {
+		chunkFile, err := os.Open(fmt.Sprintf("%s_%d", downloadRequest.FileName, idx))
+		if err != nil {
+			return err
+		}
+		defer chunkFile.Close()
+		_, err = io.Copy(downloadedFile, chunkFile)
+		if err != nil {
+			return err
+		}
+		println(fmt.Sprintf("Merged chunk %v to file", idx))
+	}
 	return nil
 }
