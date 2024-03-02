@@ -42,17 +42,25 @@ func (downloadRequest *DownloadRequest) GetPeice(start_byte int, end_byte int) e
 		return err
 	}
 
-	fileName := fmt.Sprintf("%s_%d_%d", downloadRequest.FileName, start_byte, end_byte)
+	err = downloadRequest.WriteToAFile(start_byte, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (downloadRequest *DownloadRequest) WriteToAFile(start_byte int, respBody io.ReadCloser) error {
+	fileName := fmt.Sprintf("%s_%d", downloadRequest.FileName, start_byte)
 	file, err := os.Create(fileName)
 	if err != nil {
 		panic(err)
 	}
-
-	_, err = io.Copy(file, resp.Body)
+	_, err = io.Copy(file, respBody)
 	if err != nil {
 		panic(err)
 	}
-	println(fmt.Sprintf("Wrote chunk %v%v to file", start_byte, end_byte))
+	println(fmt.Sprintf("Wrote chunk %v to file", start_byte))
 
 	return nil
 }
