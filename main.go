@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	manager "main/manager"
 	"net/url"
 	"os"
 )
@@ -13,12 +14,11 @@ func main() {
 	scanner.Scan()
 	// accept url from user
 	givenUrl := scanner.Text()
-	fmt.Println("You entered:", givenUrl)
 	// parse the url
 	url, err := url.Parse(givenUrl)
 	if err != nil {
 		fmt.Println("Error parsing URL:", err)
 		return
 	}
-	fmt.Println("Scheme:", url.Scheme, url.Host, url.Path, url.RawQuery, url.Fragment)
+	manager.Download(*url)
 }
