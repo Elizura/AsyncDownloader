@@ -53,7 +53,12 @@ func Download(url url.URL) {
 			if err != nil {
 				panic(err)
 			}
+
 		}(idx, chunk[0], chunk[1])
+	}
+	err = downLoadRequest.MergeFiles()
+	if err != nil {
+		panic(err)
 	}
 	wg.Wait()
 	fmt.Println(chunckArray)

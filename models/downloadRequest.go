@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	httpclient "main/http_client"
@@ -14,6 +15,7 @@ type DownloadRequest struct {
 	TotalSize  int
 	ChunkSize  int
 	HttpClient *httpclient.HTTPClient
+	Pieces     [5][]byte
 }
 
 func (dr *DownloadRequest) SplitIntoChuncks() [][2]int {
@@ -42,28 +44,13 @@ func (downloadRequest *DownloadRequest) GetPeice(idx, start_byte int, end_byte i
 		return err
 	}
 
-	err = downloadRequest.WriteToAFile(idx, resp.Body)
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, resp.Body)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (downloadRequest *DownloadRequest) WriteToAFile(idx int, respBody io.ReadCloser) error {
-	fileName := fmt.Sprintf("%s_%d", downloadRequest.FileName, idx)
-	file, err := os.Create(fileName)
-	if err != nil {
-		panic(err)
-	}
-	_, err = io.Copy(file, respBody)
-	if err != nil {
-		panic(err)
-	}
-
-	defer file.Close()
-	downloadRequest.MergeFiles()
-	println(fmt.Sprintf("Wrote chunk %v to file", idx))
+	println(fmt.Sprintf("Getting chunk %v", idx))
+	downloadRequest.Pieces[idx] = buf.Bytes()
 
 	return nil
 }
@@ -75,12 +62,7 @@ func (downloadRequest *DownloadRequest) MergeFiles() error {
 	}
 	defer downloadedFile.Close()
 	for idx := 0; idx < downloadRequest.Chuncks; idx++ {
-		chunkFile, err := os.Open(fmt.Sprintf("%s_%d", downloadRequest.FileName, idx))
-		if err != nil {
-			return err
-		}
-		defer chunkFile.Close()
-		_, err = io.Copy(downloadedFile, chunkFile)
+		_, err := downloadedFile.Write(downloadRequest.Pieces[idx])
 		if err != nil {
 			return err
 		}
